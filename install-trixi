@@ -2,7 +2,7 @@ https://downloads.raspberrypi.com/raspios_lite_armhf/images/raspios_lite_armhf-2
 xz -d -T=0 2025-12-04-raspios-trixie-armhf-lite.img.xz
 sudo dd if=./2025-10-01-raspios-trixie-armhf-lite.img of=/dev/sda bs=512 status=progress
 
-USB wieder einsteken
+USB wieder einstecken
 cmdline.txt
 console=tty1 root=PARTUUID=97a36c0a-02 rootfstype=ext4 fsck.repair=yes rootwait resize
 
