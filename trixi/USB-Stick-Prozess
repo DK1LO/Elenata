@@ -72,6 +72,8 @@ Dann:
 sudo systemctl daemon-reexec
 sudo systemctl restart var-log.mount
 
+sudo usermod -aG gpio svxlink
+
 cd /home/svxlink
 git clone https://github.com/sm0svx/svxlink.git
 
