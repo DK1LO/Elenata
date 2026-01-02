@@ -63,6 +63,7 @@ for gpio in "${ALL_GPIOS[@]}"; do
     chown svxlink:users "$GPIOS/gpio$gpio/value"
 done
 chmod 660 "$GPIOS"/gpio*
+sudo usermod -aG gpio svxlink
 success "GPIO-Rechte gesetzt"
 
 ### ---------- ALSA Defaults ----------
