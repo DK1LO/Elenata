@@ -1,0 +1,79 @@
+https://downloads.raspberrypi.com/raspios_lite_armhf/images/raspios_lite_armhf-2025-12-04/2025-12-04-raspios-trixie-armhf-lite.img.xz
+xz -d -T=0 2025-12-04-raspios-trixie-armhf-lite.img.xz
+sudo dd if=./2025-10-01-raspios-trixie-armhf-lite.img of=/dev/sda bs=512 status=progress
+
+USB wieder einstecken
+cmdline.txt
+console=tty1 root=PARTUUID=97a36c0a-02 rootfstype=ext4 fsck.repair=yes rootwait resize
+
+config.txt
+dtoverlay=i2s-mmap
+dtoverlay=fe-pi-audio
+dtparam=audio=off
+dtparam=i2c_arm=on
+dtparam=i2c_vc=on
+dtparam=i2c0=on
+dtparam=i2c1=on
+dtparam=i2s=on
+dtparam=spi=on
+camera_auto_detect=1
+display_auto_detect=1
+max_framebuffers=2
+disable_overscan=1
+[cm4]
+otg_mode=1
+[all]
+[pi4]
+arm_boost=1
+[all]
+enable_uart=1
+gpu_mem=256
+hdmi_force_hotplug=1
+hdmi_group=2
+hdmi_mode=16
+
+reboot
+
+Benutzername und Passwort einstellen
+raspi-config ausführen.
+dort serielle Console aktivieren aber das Login via serieller abschalten
+Locale anpassen auf Deine wünsche
+
+/etc/modules.conf
+i2c-dev
+snd-aloop
+
+AB HIER IST DIE SOUNDKARTE SCHON DA
+
+apt-get update; apt install python3-serial libssl-dev vim vim-airline-themes librtlsdr-dev libgpiod-dev gpiod build-essential screen cmake libsigc++-2.0-dev libpopt-dev tcl tcl-dev libpopt-dev libgcrypt20-dev libasound2-dev libgsm1-dev alsa-utils opus-tools libogg-dev libspeex-dev libopus-dev libjsoncpp-dev libcurl4-gnutls-dev git mc i2c-tools libi2c-dev btop i2c-tools libi2c-dev libssl3 fish
+
+systemd-journal begrenzen
+#########################
+sudo nano /etc/systemd/journald.conf
+Empfohlen:
+Storage=volatile
+SystemMaxUse=0
+RuntimeMaxUse=50M
+RuntimeMaxFileSize=10M
+Danach:
+sudo systemctl restart systemd-journald
+
+systemd-tmpfs
+###############################
+Statt /etc/fstab:
+sudo systemctl edit var-log.mount
+Inhalt:
+[Mount]
+What=tmpfs
+Where=/var/log
+Type=tmpfs
+Options=size=500M,mode=0755
+Dann:
+sudo systemctl daemon-reexec
+sudo systemctl restart var-log.mount
+
+cd /home/svxlink
+git clone https://github.com/sm0svx/svxlink.git
+
+cd /home/svxlink/svxlink/src/; mkdir build; cd build/; cmake ../ -DUSE_QT=NO
+make -j2
