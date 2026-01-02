@@ -1,0 +1,162 @@
+#!/bin/bash
+# ============================================================
+#  ELENATA Control Script DK1LO 02.01.2026
+#  sysfs GPIO (gpiochip512) ACHTUNG PTT für ElenataSpot 0:1
+# ============================================================
+
+### ---------- Farben ----------
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+BLUE=$(tput setaf 4)
+RESET=$(tput sgr0)
+
+info()    { echo -e "${BLUE}[INFO]${RESET} $1"; }
+warn()    { echo -e "${YELLOW}[WARN]${RESET} $1"; }
+error()   { echo -e "${RED}[ERROR]${RESET} $1"; }
+success() { echo -e "${GREEN}[OK]${RESET} $1"; }
+
+### ---------- Root ----------
+[ "$EUID" -ne 0 ] && { error "Script muss als root laufen"; exit 1; }
+
+### ---------- Pfade ----------
+GPIOS=/sys/class/gpio
+alsactl=$(command -v alsactl)
+sptest=$(command -v speaker-test)
+
+### ---------- GPIO Mapping ----------
+CHIP_BASE=512
+
+# Alte BCM-Namen → gpiochip512
+GPIO_PTT_R=$((CHIP_BASE + 5))     # BCM5
+GPIO_PTT_L=$((CHIP_BASE + 13))    # BCM13
+GPIO_SQL_R=$((CHIP_BASE + 6))     # BCM6
+GPIO_SQL_L=$((CHIP_BASE + 26))    # BCM26
+GPIO_COR=$((CHIP_BASE + 17))      # BCM17
+
+ALL_GPIOS=(
+  $GPIO_PTT_R $GPIO_PTT_L
+  $GPIO_SQL_R $GPIO_SQL_L
+  $GPIO_COR
+)
+
+### ---------- GPIO Export ----------
+info "Exportiere GPIOs"
+for gpio in "${ALL_GPIOS[@]}"; do
+    [ ! -d "$GPIOS/gpio$gpio" ] && echo "$gpio" > "$GPIOS/export"
+done
+sleep 0.2
+success "GPIOs registriert"
+
+### ---------- GPIO Richtungen ----------
+echo out > "$GPIOS/gpio$GPIO_PTT_R/direction"
+echo out > "$GPIOS/gpio$GPIO_PTT_L/direction"
+
+echo in  > "$GPIOS/gpio$GPIO_SQL_R/direction"
+echo in  > "$GPIOS/gpio$GPIO_SQL_L/direction"
+echo in  > "$GPIOS/gpio$GPIO_COR/direction"
+
+success "GPIO-Richtungen gesetzt"
+
+### ---------- GPIO Rechte (ohne udev) ----------
+for gpio in "${ALL_GPIOS[@]}"; do
+    chown svxlink:users "$GPIOS/gpio$gpio/value"
+done
+chmod 660 "$GPIOS"/gpio*
+success "GPIO-Rechte gesetzt"
+
+### ---------- ALSA Defaults ----------
+alsadefault() {
+    info "Setze ALSA Defaults"
+
+    amixer -c 0 set Master 96%
+    amixer -c 0 set 'Master Playback ZC' on
+    amixer -c 0 set Sidetone 0
+    amixer -c 0 set Line cap
+    amixer -c 0 set Mic nocap
+    amixer -c 0 set 'Mic Boost' 0
+    amixer -c 0 set 'Playback Deemphasis' off
+    amixer -c 0 set Capture 96%
+    amixer -c 0 set 'ADC High Pass Filter' on
+    amixer -c 0 set 'Input Mux' 'Line In'
+    amixer -c 0 set 'Output Mixer HiFi' on
+    amixer -c 0 set 'Output Mixer Line Bypass' off
+    amixer -c 0 set 'Output Mixer Mic Sidetone' off
+    amixer -c 0 set 'Store DC Offset' off
+
+    $alsactl store sndrpiproto \
+        -f /home/svxlink/skripte/elenata-alsasettings.conf
+
+    success "ALSA Defaults gesetzt"
+}
+
+### ---------- Audiotest ----------
+audiotest() {
+    info "Starte Audiotest"
+
+    $alsactl restore sndrpiproto \
+        -f /home/svxlink/skripte/elenata-alsasettings.conf
+
+    echo 0 > "$GPIOS/gpio$GPIO_PTT_L/value"
+    echo 0 > "$GPIOS/gpio$GPIO_PTT_R/value"
+
+    $sptest -Dplughw:sndrpiproto -c2 -l 2 -f 1750 -t sine
+    $sptest -Dplughw:sndrpiproto -c2 -l 2 -f 110.9 -t sine
+
+    echo 1 > "$GPIOS/gpio$GPIO_PTT_L/value"
+    echo 1 > "$GPIOS/gpio$GPIO_PTT_R/value"
+
+    success "Audiotest abgeschlossen"
+}
+
+### ---------- PTT-Test ----------
+ptttest() {
+    info "PTT-L"
+    echo 0 > "$GPIOS/gpio$GPIO_PTT_L/value"
+    sleep 1
+    echo 1 > "$GPIOS/gpio$GPIO_PTT_L/value"
+
+    info "PTT-R"
+    echo 0 > "$GPIOS/gpio$GPIO_PTT_R/value"
+    sleep 1
+    echo 1 > "$GPIOS/gpio$GPIO_PTT_R/value"
+
+    success "PTT-Test abgeschlossen"
+}
+
+### ---------- Start / Stop ----------
+start() {
+    info "Starte svxlink"
+    $alsactl restore sndrpiproto \
+        -f /home/svxlink/skripte/elenata-alsasettings.conf
+
+    /usr/local/bin/svxlink --daemon \
+        --config /usr/local/etc/svxlink/svxlink.conf \
+        --logfile /var/log/svxlink.log \
+        --runasuser=svxlink
+
+    success "svxlink läuft"
+}
+
+stop() {
+    info "Stoppe svxlink"
+    killall -9 svxlink 2>/dev/null
+    echo 1 > "$GPIOS/gpio$GPIO_PTT_L/value"
+    echo 1 > "$GPIOS/gpio$GPIO_PTT_R/value"
+    success "svxlink gestoppt"
+}
+
+### ---------- Dispatcher ----------
+case "$1" in
+    start)        start ;;
+    stop)         stop ;;
+    ptttest)      ptttest ;;
+    atest)        audiotest ;;
+    alsadefault)  alsadefault ;;
+    *)
+        error "Usage: $0 start | stop | ptttest | atest | alsadefault"
+        exit 1
+    ;;
+esac
+
+exit 0
