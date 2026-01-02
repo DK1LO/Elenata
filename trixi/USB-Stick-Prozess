@@ -45,7 +45,7 @@ snd-aloop
 
 AB HIER IST DIE SOUNDKARTE SCHON DA
 
-apt-get update; apt install python3-serial libssl-dev vim vim-airline-themes librtlsdr-dev libgpiod-dev gpiod build-essential screen cmake libsigc++-2.0-dev libpopt-dev tcl tcl-dev libpopt-dev libgcrypt20-dev libasound2-dev libgsm1-dev alsa-utils opus-tools libogg-dev libspeex-dev libopus-dev libjsoncpp-dev libcurl4-gnutls-dev git mc i2c-tools libi2c-dev btop i2c-tools libi2c-dev libssl3 fish
+apt-get update; apt install nodejs npm python3-serial libssl-dev vim vim-airline-themes librtlsdr-dev libgpiod-dev gpiod build-essential screen cmake libsigc++-2.0-dev libpopt-dev tcl tcl-dev libpopt-dev libgcrypt20-dev libasound2-dev libgsm1-dev alsa-utils opus-tools libogg-dev libspeex-dev libopus-dev libjsoncpp-dev libcurl4-gnutls-dev git mc i2c-tools libi2c-dev btop i2c-tools libi2c-dev libssl3 fish
 
 systemd-journal begrenzen
 #########################
