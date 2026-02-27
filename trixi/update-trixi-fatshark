@@ -1,0 +1,24 @@
+sudo mkdir -p /mnt/raspi/{boot,root}
+
+sudo mount /dev/loop0p1 /mnt/raspi/boot
+sudo mount /dev/loop0p2 /mnt/raspi/root
+
+sudo cp /usr/bin/qemu-arm-static /mnt/raspi/root/usr/bin/
+
+sudo mount --bind /dev  /mnt/raspi/root/dev
+sudo mount --bind /proc /mnt/raspi/root/proc
+sudo mount --bind /sys  /mnt/raspi/root/sys
+
+sudo chroot /mnt/raspi/root /bin/bash
+
+apt update
+apt install vim htop
+
+exit
+sudo umount /mnt/raspi/root/{dev,proc,sys}
+sudo umount /dev/loop0p1 /mnt/raspi/boot
+sudo umount /dev/loop0p2 /mnt/raspi/root
+
+sudo losetup -d /dev/loop0
+
+sync
